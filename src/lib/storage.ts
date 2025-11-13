@@ -1,12 +1,23 @@
+export type NewsCategory = 'Политика' | 'Экономика' | 'Технологии' | 'Спорт' | 'Культура' | 'Наука' | 'Общество' | 'Мир';
+
 export interface NewsItem {
   id: string;
   title: string;
   content: string;
   category: 'news' | 'articles';
+  newsCategory?: NewsCategory;
   image?: string;
   author: string;
   date: string;
   featured?: boolean;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  position: string;
+  bio: string;
+  photo?: string;
 }
 
 export interface AboutContent {
@@ -14,11 +25,7 @@ export interface AboutContent {
   description: string;
   mission: string;
   vision: string;
-  team: Array<{
-    name: string;
-    position: string;
-    bio: string;
-  }>;
+  team: TeamMember[];
 }
 
 export interface SiteData {
@@ -37,6 +44,7 @@ const defaultData: SiteData = {
       title: 'Технологии будущего: что нас ждет в 2025 году',
       content: 'Искусственный интеллект продолжает развиваться невероятными темпами. Эксперты прогнозируют революцию в области квантовых вычислений и нейроинтерфейсов. Новые технологии обещают изменить нашу жизнь до неузнаваемости.',
       category: 'news',
+      newsCategory: 'Технологии',
       image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop',
       author: 'Анна Иванова',
       date: new Date().toISOString(),
@@ -47,6 +55,7 @@ const defaultData: SiteData = {
       title: 'Новый рекорд на мировом чемпионате',
       content: 'Российский спортсмен установил новый мировой рекорд в беге на 100 метров, показав время 9.58 секунды. Это достижение вошло в историю мирового спорта.',
       category: 'news',
+      newsCategory: 'Спорт',
       image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=600&fit=crop',
       author: 'Петр Сидоров',
       date: new Date(Date.now() - 86400000).toISOString(),
@@ -57,10 +66,33 @@ const defaultData: SiteData = {
       title: 'Открытие выставки современного искусства',
       content: 'В центральном музее открылась уникальная выставка работ молодых художников. Экспозиция будет доступна до конца месяца и обещает стать событием года.',
       category: 'news',
+      newsCategory: 'Культура',
       image: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&h=600&fit=crop',
       author: 'Мария Петрова',
       date: new Date(Date.now() - 172800000).toISOString(),
       featured: true
+    },
+    {
+      id: '6',
+      title: 'Экономический рост продолжается третий квартал',
+      content: 'Министерство экономики сообщает о позитивной динамике роста ВВП на 3.2% в годовом исчислении.',
+      category: 'news',
+      newsCategory: 'Экономика',
+      image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&h=600&fit=crop',
+      author: 'Дмитрий Козлов',
+      date: new Date(Date.now() - 432000000).toISOString(),
+      featured: false
+    },
+    {
+      id: '7',
+      title: 'Прорыв в медицине: новый метод лечения',
+      content: 'Ученые разработали революционный метод лечения онкологических заболеваний с эффективностью 85%.',
+      category: 'news',
+      newsCategory: 'Наука',
+      image: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=800&h=600&fit=crop',
+      author: 'Елена Смирнова',
+      date: new Date(Date.now() - 518400000).toISOString(),
+      featured: false
     }
   ],
   articles: [
@@ -92,19 +124,25 @@ const defaultData: SiteData = {
     vision: 'Мы стремимся стать ведущим новостным порталом, который объединяет людей через качественную журналистику.',
     team: [
       {
+        id: '1',
         name: 'Анна Иванова',
         position: 'Главный редактор',
-        bio: 'Опыт работы в журналистике более 15 лет. Специализируется на технологических темах.'
+        bio: 'Опыт работы в журналистике более 15 лет. Специализируется на технологических темах.',
+        photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop'
       },
       {
+        id: '2',
         name: 'Петр Сидоров',
         position: 'Спортивный обозреватель',
-        bio: 'Освещает спортивные события международного уровня. Мастер спорта по легкой атлетике.'
+        bio: 'Освещает спортивные события международного уровня. Мастер спорта по легкой атлетике.',
+        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop'
       },
       {
+        id: '3',
         name: 'Мария Петрова',
         position: 'Культурный критик',
-        bio: 'Специалист по искусству и культуре. Автор множества статей о современном искусстве.'
+        bio: 'Специалист по искусству и культуре. Автор множества статей о современном искусстве.',
+        photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop'
       }
     ]
   }
@@ -172,6 +210,27 @@ export const storage = {
   updateAbout(about: AboutContent) {
     const data = this.getData();
     data.about = about;
+    this.setData(data);
+  },
+
+  addTeamMember(member: TeamMember) {
+    const data = this.getData();
+    data.about.team.push(member);
+    this.setData(data);
+  },
+
+  updateTeamMember(id: string, updates: Partial<TeamMember>) {
+    const data = this.getData();
+    const memberIndex = data.about.team.findIndex(m => m.id === id);
+    if (memberIndex !== -1) {
+      data.about.team[memberIndex] = { ...data.about.team[memberIndex], ...updates };
+    }
+    this.setData(data);
+  },
+
+  deleteTeamMember(id: string) {
+    const data = this.getData();
+    data.about.team = data.about.team.filter(m => m.id !== id);
     this.setData(data);
   },
 

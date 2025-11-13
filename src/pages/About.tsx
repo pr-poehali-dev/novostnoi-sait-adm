@@ -52,11 +52,19 @@ export default function About() {
         <div className="mb-8">
           <h2 className="text-3xl font-bold mb-6 text-center">Наша команда</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {about.team.map((member, index) => (
-              <Card key={index} className="p-6 text-center hover-scale">
-                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon name="User" className="h-10 w-10 text-primary" />
-                </div>
+            {about.team.map((member) => (
+              <Card key={member.id} className="p-6 text-center hover-scale">
+                {member.photo ? (
+                  <img 
+                    src={member.photo} 
+                    alt={member.name} 
+                    className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-primary/20"
+                  />
+                ) : (
+                  <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Icon name="User" className="h-16 w-16 text-primary" />
+                  </div>
+                )}
                 <h3 className="font-bold text-lg mb-1">{member.name}</h3>
                 <p className="text-sm text-primary mb-3">{member.position}</p>
                 <p className="text-sm text-muted-foreground">{member.bio}</p>

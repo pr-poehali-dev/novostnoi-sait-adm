@@ -38,11 +38,18 @@ export default function NewsCard({ news, featured = false }: NewsCardProps) {
         )}
         
         <div className={`p-6 ${featured ? 'md:w-1/2' : ''}`}>
-          <Badge variant="outline" className="mb-3">
-            {news.category === 'news' ? 'Новость' : 'Статья'}
-          </Badge>
+          <div className="flex gap-2 mb-3">
+            {news.newsCategory && (
+              <Badge className="bg-primary">
+                {news.newsCategory}
+              </Badge>
+            )}
+            {news.category === 'articles' && (
+              <Badge variant="outline">Статья</Badge>
+            )}
+          </div>
           
-          <h3 className={`font-bold mb-3 ${featured ? 'text-2xl' : 'text-xl'} line-clamp-2`}>
+          <h3 className={`font-bold mb-3 ${featured ? 'text-2xl' : 'text-xl'} line-clamp-2 hover:text-primary transition-colors cursor-pointer`}>
             {news.title}
           </h3>
           

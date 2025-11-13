@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import Icon from '@/components/ui/icon';
-import { storage, NewsItem, AboutContent } from '@/lib/storage';
+import { storage, NewsItem, AboutContent, TeamMember, NewsCategory } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
+
+const newsCategories: NewsCategory[] = ['Политика', 'Экономика', 'Технологии', 'Спорт', 'Культура', 'Наука', 'Общество', 'Мир'];
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -19,7 +21,9 @@ export default function Admin() {
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [about, setAbout] = useState<AboutContent | null>(null);
   const [editingItem, setEditingItem] = useState<NewsItem | null>(null);
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,6 +58,7 @@ export default function Admin() {
       title: formData.get('title') as string,
       content: formData.get('content') as string,
       category: formData.get('category') as 'news' | 'articles',
+      newsCategory: formData.get('newsCategory') as NewsCategory || undefined,
       image: formData.get('image') as string || undefined,
       author: formData.get('author') as string,
       date: editingItem?.date || new Date().toISOString(),
@@ -77,6 +82,56 @@ export default function Admin() {
     if (confirm('Вы уверены, что хотите удалить этот материал?')) {
       storage.deleteItem(id);
       toast({ title: 'Удалено', description: 'Материал успешно удален' });
+      loadData();
+    }
+  };
+
+  const handleSaveAbout = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const updatedAbout: AboutContent = {
+      title: formData.get('title') as string,
+      description: formData.get('description') as string,
+      mission: formData.get('mission') as string,
+      vision: formData.get('vision') as string,
+      team: about?.team || []
+    };
+
+    storage.updateAbout(updatedAbout);
+    toast({ title: 'Обновлено', description: 'Раздел "О нас" успешно обновлен' });
+    loadData();
+  };
+
+  const handleSaveTeamMember = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const member: TeamMember = {
+      id: editingMember?.id || Date.now().toString(),
+      name: formData.get('name') as string,
+      position: formData.get('position') as string,
+      bio: formData.get('bio') as string,
+      photo: formData.get('photo') as string || undefined
+    };
+
+    if (editingMember) {
+      storage.updateTeamMember(member.id, member);
+      toast({ title: 'Обновлено', description: 'Член команды успешно обновлен' });
+    } else {
+      storage.addTeamMember(member);
+      toast({ title: 'Добавлено', description: 'Член команды успешно добавлен' });
+    }
+
+    setIsTeamDialogOpen(false);
+    setEditingMember(null);
+    loadData();
+  };
+
+  const handleDeleteTeamMember = (id: string) => {
+    if (confirm('Вы уверены, что хотите удалить этого члена команды?')) {
+      storage.deleteTeamMember(id);
+      toast({ title: 'Удалено', description: 'Член команды успешно удален' });
       loadData();
     }
   };
@@ -109,23 +164,6 @@ export default function Admin() {
     reader.readAsText(file);
   };
 
-  const handleSaveAbout = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
-    const updatedAbout: AboutContent = {
-      title: formData.get('title') as string,
-      description: formData.get('description') as string,
-      mission: formData.get('mission') as string,
-      vision: formData.get('vision') as string,
-      team: about?.team || []
-    };
-
-    storage.updateAbout(updatedAbout);
-    toast({ title: 'Обновлено', description: 'Раздел "О нас" успешно обновлен' });
-    loadData();
-  };
-
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
@@ -153,6 +191,64 @@ export default function Admin() {
       </div>
     );
   }
+
+  const NewsForm = () => (
+    <form onSubmit={handleSaveItem} className="space-y-4">
+      <div>
+        <Label>Заголовок</Label>
+        <Input name="title" defaultValue={editingItem?.title} required />
+      </div>
+      <div>
+        <Label>Содержание</Label>
+        <Textarea name="content" defaultValue={editingItem?.content} rows={6} required />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Тип</Label>
+          <Select name="category" defaultValue={editingItem?.category || 'news'}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="news">Новость</SelectItem>
+              <SelectItem value="articles">Статья</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Категория новости</Label>
+          <Select name="newsCategory" defaultValue={editingItem?.newsCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="Выберите категорию" />
+            </SelectTrigger>
+            <SelectContent>
+              {newsCategories.map(cat => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div>
+        <Label>URL изображения</Label>
+        <Input name="image" defaultValue={editingItem?.image} placeholder="https://example.com/image.jpg" />
+      </div>
+      <div>
+        <Label>Автор</Label>
+        <Input name="author" defaultValue={editingItem?.author} required />
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch name="featured" defaultChecked={editingItem?.featured} />
+        <Label>Главная новость</Label>
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit">Сохранить</Button>
+        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+          Отмена
+        </Button>
+      </div>
+    </form>
+  );
 
   return (
     <div className="min-h-screen py-8 bg-muted/30">
@@ -193,6 +289,7 @@ export default function Admin() {
             <TabsTrigger value="news">Новости</TabsTrigger>
             <TabsTrigger value="articles">Статьи</TabsTrigger>
             <TabsTrigger value="about">О нас</TabsTrigger>
+            <TabsTrigger value="team">Команда</TabsTrigger>
           </TabsList>
 
           <TabsContent value="news">
@@ -208,46 +305,7 @@ export default function Admin() {
                   <DialogHeader>
                     <DialogTitle>{editingItem ? 'Редактировать' : 'Добавить новость'}</DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleSaveItem} className="space-y-4">
-                    <div>
-                      <Label htmlFor="title">Заголовок</Label>
-                      <Input name="title" defaultValue={editingItem?.title} required />
-                    </div>
-                    <div>
-                      <Label htmlFor="content">Содержание</Label>
-                      <Textarea name="content" defaultValue={editingItem?.content} rows={6} required />
-                    </div>
-                    <div>
-                      <Label htmlFor="category">Категория</Label>
-                      <Select name="category" defaultValue={editingItem?.category || 'news'}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="news">Новость</SelectItem>
-                          <SelectItem value="articles">Статья</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="image">URL изображения</Label>
-                      <Input name="image" defaultValue={editingItem?.image} />
-                    </div>
-                    <div>
-                      <Label htmlFor="author">Автор</Label>
-                      <Input name="author" defaultValue={editingItem?.author} required />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch name="featured" defaultChecked={editingItem?.featured} />
-                      <Label>Главная новость</Label>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button type="submit">Сохранить</Button>
-                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                        Отмена
-                      </Button>
-                    </div>
-                  </form>
+                  <NewsForm />
                 </DialogContent>
               </Dialog>
 
@@ -256,12 +314,19 @@ export default function Admin() {
                   <Card key={item.id} className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
+                        <div className="flex gap-2 mb-2">
+                          {item.newsCategory && (
+                            <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                              {item.newsCategory}
+                            </span>
+                          )}
+                          {item.featured && <span className="text-primary">⭐</span>}
+                        </div>
                         <h3 className="font-bold text-lg mb-2">{item.title}</h3>
                         <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{item.content}</p>
                         <div className="flex gap-4 text-sm text-muted-foreground">
                           <span>{item.author}</span>
                           <span>{new Date(item.date).toLocaleDateString('ru-RU')}</span>
-                          {item.featured && <span className="text-primary">⭐ Главное</span>}
                         </div>
                       </div>
                       <div className="flex gap-2 ml-4">
@@ -303,46 +368,7 @@ export default function Admin() {
                   <DialogHeader>
                     <DialogTitle>{editingItem ? 'Редактировать' : 'Добавить статью'}</DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleSaveItem} className="space-y-4">
-                    <div>
-                      <Label htmlFor="title">Заголовок</Label>
-                      <Input name="title" defaultValue={editingItem?.title} required />
-                    </div>
-                    <div>
-                      <Label htmlFor="content">Содержание</Label>
-                      <Textarea name="content" defaultValue={editingItem?.content} rows={6} required />
-                    </div>
-                    <div>
-                      <Label htmlFor="category">Категория</Label>
-                      <Select name="category" defaultValue={editingItem?.category || 'articles'}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="news">Новость</SelectItem>
-                          <SelectItem value="articles">Статья</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="image">URL изображения</Label>
-                      <Input name="image" defaultValue={editingItem?.image} />
-                    </div>
-                    <div>
-                      <Label htmlFor="author">Автор</Label>
-                      <Input name="author" defaultValue={editingItem?.author} required />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch name="featured" defaultChecked={editingItem?.featured} />
-                      <Label>Избранная статья</Label>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button type="submit">Сохранить</Button>
-                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                        Отмена
-                      </Button>
-                    </div>
-                  </form>
+                  <NewsForm />
                 </DialogContent>
               </Dialog>
 
@@ -356,7 +382,6 @@ export default function Admin() {
                         <div className="flex gap-4 text-sm text-muted-foreground">
                           <span>{item.author}</span>
                           <span>{new Date(item.date).toLocaleDateString('ru-RU')}</span>
-                          {item.featured && <span className="text-primary">⭐ Избранное</span>}
                         </div>
                       </div>
                       <div className="flex gap-2 ml-4">
@@ -391,19 +416,19 @@ export default function Admin() {
               {about && (
                 <form onSubmit={handleSaveAbout} className="space-y-4">
                   <div>
-                    <Label htmlFor="title">Заголовок</Label>
+                    <Label>Заголовок</Label>
                     <Input name="title" defaultValue={about.title} required />
                   </div>
                   <div>
-                    <Label htmlFor="description">Описание</Label>
+                    <Label>Описание</Label>
                     <Textarea name="description" defaultValue={about.description} rows={3} required />
                   </div>
                   <div>
-                    <Label htmlFor="mission">Миссия</Label>
+                    <Label>Миссия</Label>
                     <Textarea name="mission" defaultValue={about.mission} rows={3} required />
                   </div>
                   <div>
-                    <Label htmlFor="vision">Видение</Label>
+                    <Label>Видение</Label>
                     <Textarea name="vision" defaultValue={about.vision} rows={3} required />
                   </div>
                   <Button type="submit">
@@ -413,6 +438,86 @@ export default function Admin() {
                 </form>
               )}
             </Card>
+          </TabsContent>
+
+          <TabsContent value="team">
+            <div className="space-y-4">
+              <Dialog open={isTeamDialogOpen} onOpenChange={setIsTeamDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => setEditingMember(null)}>
+                    <Icon name="UserPlus" className="mr-2 h-4 w-4" />
+                    Добавить члена команды
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingMember ? 'Редактировать' : 'Добавить члена команды'}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSaveTeamMember} className="space-y-4">
+                    <div>
+                      <Label>Имя</Label>
+                      <Input name="name" defaultValue={editingMember?.name} required />
+                    </div>
+                    <div>
+                      <Label>Должность</Label>
+                      <Input name="position" defaultValue={editingMember?.position} required />
+                    </div>
+                    <div>
+                      <Label>Биография</Label>
+                      <Textarea name="bio" defaultValue={editingMember?.bio} rows={4} required />
+                    </div>
+                    <div>
+                      <Label>URL фотографии</Label>
+                      <Input name="photo" defaultValue={editingMember?.photo} placeholder="https://example.com/photo.jpg" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit">Сохранить</Button>
+                      <Button type="button" variant="outline" onClick={() => setIsTeamDialogOpen(false)}>
+                        Отмена
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {about?.team.map(member => (
+                  <Card key={member.id} className="p-4">
+                    <div className="flex flex-col items-center text-center">
+                      {member.photo ? (
+                        <img src={member.photo} alt={member.name} className="w-24 h-24 rounded-full object-cover mb-4" />
+                      ) : (
+                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                          <Icon name="User" className="h-12 w-12 text-primary" />
+                        </div>
+                      )}
+                      <h3 className="font-bold text-lg">{member.name}</h3>
+                      <p className="text-sm text-primary mb-2">{member.position}</p>
+                      <p className="text-sm text-muted-foreground mb-4">{member.bio}</p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingMember(member);
+                            setIsTeamDialogOpen(true);
+                          }}
+                        >
+                          <Icon name="Pencil" className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteTeamMember(member.id)}
+                        >
+                          <Icon name="Trash2" className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
